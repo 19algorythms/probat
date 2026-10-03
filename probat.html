@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>probat v2.4</title>
+<style>
+  * { box-sizing: border-box; }
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; padding: 28px 24px 40px;
+    background: #0b0e13; color: #e6e9ef;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .page { max-width: 1060px; margin: 0 auto; }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+  h1 { font-size: 24px; font-weight: 650; margin: 0; letter-spacing: -0.02em; color: #f0f2f5; }
+  h1 .ver { font-size: 12px; font-weight: 600; color: #6b7684; vertical-align: super; margin-left: 6px; letter-spacing: 0; }
+  .meta { font-size: 12px; color: #7d8899; }
+  .sealbar {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 12px;
+    background: #12161d; border: 1px solid #232a35; border-radius: 10px;
+    padding: 10px 14px; margin-bottom: 10px;
+  }
+  .chip {
+    display: inline-flex; align-items: center; padding: 3px 12px; border-radius: 999px;
+    font-size: 12px; font-weight: 600; white-space: nowrap;
+    background: #1c232e; color: #93a0b4;
+  }
+  .chip.ready { background: #14263f; color: #6ea8ff; }
+  .chip.wait  { background: #2a2314; color: #e0b34f; }
+  .chip.ok    { background: #0f2a1c; color: #4ec27f; }
+  .chip.ko    { background: #33151a; color: #ff7b72; }
+  .hashline { font-size: 11px; color: #6b7684; font-family: ui-monospace, "SF Mono", JetBrains Mono, Consolas, monospace; }
+  .hashline code { color: #9aa7b8; user-select: all; word-break: break-all; }
+  .actions { margin-left: auto; display: flex; gap: 8px; }
+  button {
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    border-radius: 8px; padding: 7px 16px; border: 1px solid #2c3542; background: #1a212b; color: #dbe2ec;
+  }
+  button:hover:not(:disabled) { border-color: #4c8dff; color: #8fb8ff; }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: #2f6fed; border-color: #2f6fed; color: #fff; }
+  button.primary:hover:not(:disabled) { background: #4c8dff; color: #fff; }
+  .io-bar {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+    background: #10151c; border: 1px dashed #2c3542; border-radius: 10px;
+    padding: 8px 14px; margin-bottom: 14px; font-size: 12px; color: #8a93a3;
+  }
+  .io-bar.drag { border-color: #4c8dff; background: #12233d; color: #8fb8ff; }
+  .io-bar .deps { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+  .io-bar input[type=text] {
+    font: inherit; font-size: 12px; padding: 5px 10px; width: 260px;
+    border: 1px solid #2c3542; border-radius: 7px; outline: none;
+    font-family: ui-monospace, Consolas, monospace; background: #0d1117; color: #dbe2ec;
+  }
+  .io-bar input[type=text]:focus { border-color: #4c8dff; }
+  .upchip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px;
+    background: #1a212b; border-radius: 999px; font-size: 11px; color: #9aa7b8;
+    font-family: ui-monospace, Consolas, monospace;
+  }
+  .upchip b { cursor: pointer; color: #ff7b72; font-weight: 700; }
+  details.caps {
+    background: #12161d; border: 1px solid #232a35; border-radius: 10px;
+    margin-bottom: 14px; font-size: 12.5px;
+  }
+  details.caps summary {
+    cursor: pointer; list-style: none; padding: 10px 14px; font-weight: 600; color: #c3cad6;
+  }
+  details.caps summary::-webkit-details-marker { display: none; }
+  details.caps summary::before { content: '▸ '; color: #6ea8ff; }
+  details.caps[open] summary::before { content: '▾ '; }
+  .caps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; padding: 0 16px 14px 30px; }
+  .caps-grid h4 { margin: 6px 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  .caps-grid .ok h4 { color: #4ec27f; } .caps-grid .no h4 { color: #ff7b72; }
+  .caps-grid ul { margin: 0 0 8px; padding-left: 16px; color: #9aa7b8; line-height: 19px; }
+  .caps-grid code { font-family: ui-monospace, Consolas, monospace; font-size: 11px; background: #1a212b; padding: 0 4px; border-radius: 4px; color: #c9d2de; }
+  .editors { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .pane { background: #0d1117; border-radius: 12px; overflow: hidden; border: 1px solid #232a35; }
+  .pane-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em;
+    color: #7d8899; padding: 10px 14px 6px;
+  }
+  .pane-title .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot.py { background: #3776ab; } .dot.js { background: #c9a227; } .dot.out { background: #4ec27f; }
+  textarea {
+    display: block; width: 100%; min-height: 320px; resize: vertical;
+    background: transparent; border: none; outline: none;
+    color: #d6deeb; caret-color: #7aa2f7;
+    font-family: ui-monospace, "SF Mono", JetBrains Mono, Consolas, monospace;
+    font-size: 13px; line-height: 20px; padding: 8px 16px 16px; tab-size: 4;
+    white-space: pre; overflow: auto;
+  }
+  textarea::placeholder { color: #4a5568; }
+  .console-pane { margin-top: 14px; background: #0d1117; border-radius: 12px; border: 1px solid #232a35; }
+  #console {
+    margin: 0; min-height: 120px; max-height: 320px; overflow: auto;
+    font-family: ui-monospace, "SF Mono", JetBrains Mono, Consolas, monospace;
+    font-size: 12.5px; line-height: 19px; color: #d6deeb; padding: 8px 16px 4px;
+  }
+  .cl.out { color: #d6deeb; } .cl.err { color: #ff7b72; } .cl.meta { color: #6b7684; } .cl.warn { color: #e0b34f; }
+  .runstats { font-size: 11px; color: #5b6672; padding: 0 16px 12px; font-family: ui-monospace, Consolas, monospace; }
+  .exports { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 0 16px 14px; }
+  .exports .explabel { font-size: 11px; color: #5b6672; }
+  .exports .expbtn {
+    font-size: 11px; font-family: ui-monospace, Consolas, monospace; font-weight: 500;
+    padding: 3px 10px; border-radius: 999px; background: #16202c; border: 1px solid #263548; color: #8fc1ff;
+  }
+  .exports .expbtn:hover { border-color: #4c8dff; color: #d6e9ff; }
+  .datapane { display: none; margin-top: 14px; background: #12161d; border: 1px solid #232a35;
+    border-radius: 12px; overflow: hidden; }
+  .datapane.on { display: block; }
+  .datapane-head { display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+    border-bottom: 1px solid #232a35; }
+  .datapane-head .t { font-size: 13px; font-weight: 600; color: #e6e9ef; }
+  .datapane-head .s { font-size: 11px; color: #6b7684; font-family: ui-monospace, Consolas, monospace; }
+  .datapane-head .chip { margin-left: auto; }
+  .datapane table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .datapane th, .datapane td { padding: 7px 14px; text-align: left; border-bottom: 1px solid #1c2430;
+    vertical-align: top; }
+  .datapane thead th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+    color: #8a93a3; background: #0f141b; position: sticky; top: 0; }
+  .datapane tbody tr:last-child td { border-bottom: none; }
+  .datapane tbody tr:hover { background: #16202c; }
+  .datapane td.num, .datapane th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .datapane td { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 12px;
+    color: #c9d2de; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .datapane th.sortable { cursor: pointer; user-select: none; }
+  .datapane th.sortable:hover { color: #6ea8ff; }
+  .datapane th .ind { font-size: 9px; color: #6ea8ff; margin-left: 3px; }
+  .page { position: relative; }
+  #sketchLayer { position: absolute; inset: 0; pointer-events: none; z-index: 40; }
+  #sketchLayer.editing { pointer-events: auto; cursor: crosshair; }
+  #sketchSvg { overflow: visible; }
+  #sketchSvg polyline { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: .92; }
+  #sketchbar { display: none; position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 60;
+    background: #12161d; border: 1px solid #232a35; border-radius: 999px; padding: 6px 12px;
+    align-items: center; gap: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.45); }
+  #sketchbar.on { display: flex; }
+  #sketchbar .sblabel { font-size: 11px; color: #6b7684; text-transform: uppercase; letter-spacing: .06em; }
+  .skdot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+  .skdot.sel { border-color: #e6e9ef; }
+  #sketchbar > button { font-size: 11px; padding: 3px 10px; border-radius: 999px; }
+  #sketchBtn.active { border-color: #e0b34f; color: #e0b34f; }
+  .datapane .more { padding: 8px 16px; font-size: 11px; color: #5b6672; font-family: ui-monospace, Consolas, monospace; }
+  .foot { margin-top: 20px; font-size: 12px; color: #7d8899; line-height: 20px; border-top: 1px solid #232a35; padding-top: 14px; }
+  .foot code { font-family: ui-monospace, Consolas, monospace; font-size: 11px; background: #1a212b; padding: 1px 5px; border-radius: 4px; color: #c9d2de; }
+  .foot a { color: #6ea8ff; }
+  .licence { font-size: 11px; color: #5b6672; line-height: 17px; margin-top: 12px;
+    font-family: ui-monospace, Consolas, monospace; white-space: pre-wrap; }
+  @media (max-width: 860px) { .editors { grid-template-columns: 1fr; } .actions { margin-left: 0; } .io-bar .deps { margin-left: 0; }
+    .caps-grid { grid-template-columns: 1fr; } .datapane td { max-width: 160px; } }
+
+  /* ---- cells : the run stack ---- */
+  .cells { display: flex; flex-direction: column; gap: 14px; }
+  .cell { background: #0f1319; border: 1px solid #232a35; border-radius: 14px; padding: 12px 14px 14px; }
+  .cell.active { border-color: #2c4a77; box-shadow: 0 0 0 1px #2c4a77 inset; }
+  .cell-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .cell-name { font-weight: 650; font-size: 14px; color: #e6e9ef; padding: 2px 8px; border-radius: 6px; }
+  .cell-name:focus { outline: 1px solid #2c3542; background: #12161d; }
+  .cell-stats { font-size: 11px; color: #5b6672; font-family: ui-monospace, Consolas, monospace; }
+  .cell-head .cell-run { margin-left: auto; font-size: 12px; padding: 5px 14px; }
+  .cell-del { font-size: 12px; padding: 5px 10px; color: #7d8899; }
+  .cell.drag { border-color: #4c8dff; }
+  .cell-up { font-size: 12px; padding: 5px 10px; color: #8fb8ff; }
+  .pngbtn { font-size: 10px; padding: 1px 8px; border-radius: 999px; }
+  .h-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px; }
+  .cell .editors { margin-bottom: 0; }
+  .cell textarea { min-height: 200px; }
+  .cell .console-pane { margin-top: 10px; }
+  .cell #console, .cell .console { min-height: 70px; max-height: 180px; }
+  .cell .datapane { margin-top: 10px; }
+  /* ---- column profile histograms ---- */
+  .profbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 16px 0; }
+  .profbar .plabel { font-size: 10px; color: #5b6672; text-transform: uppercase; letter-spacing: .06em; }
+  .profchip { font-size: 10px; font-family: ui-monospace, Consolas, monospace; padding: 2px 8px;
+    border-radius: 999px; background: #16202c; border: 1px solid #263548; color: #8fc1ff; cursor: pointer; }
+  .profchip:hover, .profchip.sel { border-color: #4c8dff; color: #d6e9ff; }
+  .profhisto { padding: 6px 16px 10px; }
+  .profhisto svg { width: 100%; height: auto; display: block; }
+  .profhisto .h-title { font-size: 10px; color: #5b6672; font-family: ui-monospace, Consolas, monospace; margin-bottom: 2px; }
+  .bar { fill: #4c8dff; } .bar.b { fill: #e0b34f; }
+  /* ---- compare pane ---- */
+  .comparepane { display: none; margin-top: 14px; background: #12161d; border: 1px solid #232a35; border-radius: 12px; overflow: hidden; }
+  .comparepane.on { display: block; }
+  .cp-head { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 10px 16px; border-bottom: 1px solid #232a35; }
+  .cp-head .t { font-size: 13px; font-weight: 600; color: #e6e9ef; }
+  .cp-head select { font: inherit; font-size: 12px; font-family: ui-monospace, Consolas, monospace;
+    background: #0d1117; color: #dbe2ec; border: 1px solid #2c3542; border-radius: 7px; padding: 4px 8px; }
+  .cp-body { padding: 10px 16px 14px; }
+  .cp-sec { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #7d8899; margin: 12px 0 6px; }
+  .rt-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .rt-table th, .rt-table td { padding: 5px 12px; text-align: left; border-bottom: 1px solid #1c2430; }
+  .rt-table th { color: #7d8899; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
+  .rt-table td { font-family: ui-monospace, Consolas, monospace; color: #c9d2de; }
+  .rt-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .rt-best { color: #4ec27f; font-weight: 600; }
+  .dchip { display: inline-flex; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; margin-right: 6px; }
+  .d-added { background: #0f2a1c; color: #4ec27f; }
+  .d-removed { background: #33151a; color: #ff7b72; }
+  .d-changed { background: #2a2314; color: #e0b34f; }
+  .difftable { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-top: 8px; }
+  .difftable th, .difftable td { padding: 4px 10px; text-align: left; border-bottom: 1px solid #1c2430;
+    font-family: ui-monospace, Consolas, monospace; color: #c9d2de; max-width: 260px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .difftable th { color: #7d8899; font-size: 10px; text-transform: uppercase; }
+  .cmp-histo { margin-bottom: 10px; }
+  .cmp-histo .h-title { font-size: 10px; color: #5b6672; font-family: ui-monospace, Consolas, monospace; margin-bottom: 2px; }
+  .cmp-histo svg { width: 100%; height: auto; display: block; }
+  .legend { font-size: 10px; color: #5b6672; font-family: ui-monospace, Consolas, monospace; }
+  .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin: 0 4px 0 10px; vertical-align: middle; }
+</style>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+</head>
+<body>
+<div class="page">
+  <div id="sketchLayer"><svg id="sketchSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+  <header>
+    <h1>probat<span class="ver">v2.4.0</span></h1>
+    <div class="meta">a stack of runs · compared side by side · frozen artifacts are lapis</div>
+  </header>
+
+  <div class="sealbar">
+    <span class="chip" id="statusChip">initializing…</span>
+    <span class="hashline">sha-256 <code id="hash" title="">…</code></span>
+    <span class="actions">
+      <button id="addCellBtn" title="add a run: a new python + json pair, comparable to the others">＋ run</button>
+      <button id="sketchBtn" title="sketch annotations by hand — forged into the lapis">✎</button>
+      <button id="freezeBtn">⬇ freeze — forge a lapis</button>
+    </span>
+  </div>
+
+  <div class="io-bar" id="ioBar">
+    <button id="fileBtn" type="button">upload .py / .json</button>
+    <input type="file" id="fileInput" multiple accept=".py,.json,.txt" style="display:none">
+    <span>or drop files anywhere in this strip — uploads are seeded into the virtual filesystem for every run</span>
+    <span id="uplist"></span>
+    <span class="deps">deps <input type="text" id="deps" placeholder="sympy, sortedcontainers — pypi pure-python only" spellcheck="false"></span>
+  </div>
+
+  <details class="caps">
+    <summary>what probat can and cannot do</summary>
+    <div class="caps-grid">
+      <div class="ok">
+        <h4>works, self-healing</h4>
+        <ul>
+          <li>full python stdlib — exact bigint arithmetic, <code>fractions</code>, <code>hashlib</code></li>
+          <li>scientific stack shipped with pyodide: <code>numpy</code>, <code>sympy</code>, <code>scipy</code>, <code>pandas</code></li>
+          <li>pypi <b>pure-python</b> packages via the deps field (micropip)</li>
+          <li>upload / drop <code>.py</code> and <code>.json</code> per run (the ⬆ button in each run's header,
+              or drop files straight onto the cell) — uploads are seeded into the virtual filesystem</li>
+          <li><b>with a json box</b>: its content is exposed to the script as <code>DATA</code> and compiled into
+              the verified table after the run. <b>without one</b>: if the script writes <code>.json</code> files,
+              the largest is auto-loaded back into the box and compiled — any other written file stays
+              available in the export panel</li>
+          <li><b>fs bridge</b>: a path your script opens but that does not exist is auto-completed
+              from your uploads or editor content (warns in orange when it guesses); stale bridges
+              are revoked before every run</li>
+          <li><b>module bridge</b>: a missing import is installed on the fly, then the run retries</li>
+          <li>files your script writes become downloadable (export panel)</li>
+          <li>big integers stay exact in the compiled table — never rounded past 2<sup>53</sup></li>
+          <li>every run executes in a <b>fresh namespace</b> — no globals leak between runs; each run
+              behaves exactly as in a brand-new page, even for completely unrelated scripts</li>
+          <li>runs <b>queue</b>: pressing ▶ while another run is active lines the run up instead of
+              interleaving two executions in the engine; timing starts when the run actually starts</li>
+          <li>cross-run <b>file collisions</b> are warned in orange — if a run overwrites a file another
+              run wrote, the console says who owned it first</li>
+          <li><b>freeze</b>: the page regenerates itself with your content embedded — the file writes
+              itself; its sha-256 fingerprint is recomputed on every keystroke</li>
+        </ul>
+      </div>
+      <div class="no">
+        <h4>hard browser limits — never</h4>
+        <ul>
+          <li><code>multiprocessing</code> / <code>subprocess</code> — wasm is single-process
+              (multi-core engines stay in the forge)</li>
+          <li>C extensions not ported to pyodide: <code>gmpy2</code>, <code>cypari</code>,
+              any package with compiled code — micropip will fail honestly</li>
+          <li>arbitrary network calls (CORS): no fetching URLs outside the pypi CDN</li>
+          <li>persistence: the virtual filesystem lives for the page session only —
+              export what you want to keep</li>
+          <li>heavy scans <i>do</i> run, but on the visitor's cpu and without native acceleration —
+              probat verifies, the forge computes</li>
+        </ul>
+      </div>
+    </div>
+  </details>
+
+
+  <div class="cells" id="cells"></div>
+
+  <div class="comparepane" id="comparepane">
+    <div class="cp-head">
+      <span class="t">compare runs</span>
+      <select id="cmpA"></select>
+      <span class="legend">vs</span>
+      <select id="cmpB"></select>
+    </div>
+    <div class="cp-body">
+      <div class="cp-sec">runtime — speed is a variable</div>
+      <div id="cpRuntime"></div>
+      <div class="cp-sec">data diff</div>
+      <div id="cpDiff"></div>
+      <div class="cp-sec">distributions — common numeric columns</div>
+      <div id="cpHistos"></div>
+    </div>
+  </div>
+
+  <div id="sketchbar">
+    <span class="sblabel">sketch</span>
+    <span id="skColors" style="display:flex;gap:6px"></span>
+    <button id="skUndo" type="button">↩ undo</button>
+    <button id="skClear" type="button">✕ clear</button>
+    <button id="skDone" type="button">✓ done</button>
+  </div>
+
+  <div class="foot">
+    each <b>run</b> is an independent python + json pair with its own clock, console, compiled table and
+    column histograms. add runs with <code>＋ run</code>, rename them, delete them — the
+    <b>compare</b> panel confronts any two verified executions: wall-clock race, row diff
+    (added / removed / changed, joined on a unique key when one exists) and crossed distributions.
+    the sha-256 fingerprint covers every run and the deps field. <code>freeze</code> forges a
+    <b>lapis</b>: a sealed stone that re-verifies every run on open. uploaded files live in
+    pyodide's virtual filesystem; missing paths are bridged, stale bridges revoked, missing modules
+    installed on the fly. heavy scans run on <b>your</b> cpu — probat verifies, the forge computes.<br>
+    probat v2.4.0 · authors: architecte1995 (antoine couet) &amp; kimi k3 · engine:
+    <a href="https://pyodide.org">pyodide</a> (python in the browser) · seeded 2026-09-25
+  </div>
+  <div class="licence">MIT License — Copyright (c) 2026 Antoine Couet (Architecte1995) &amp; Kimi K3
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</div>
+</div>
+</div>
+<script type="application/json" id="init-data">{"cells": [{"name": "run 1", "py": "", "json": ""}], "deps": ""}</script>
+<script>
+const $ = id => document.getElementById(id);
+const depsBox = $('deps'), chip = $('statusChip'), hashEl = $('hash'), ioBar = $('ioBar');
+let pyodide = null;
+const uploaded = new Map();
+const bridged = new Set();
+const cells = [];
+let cellSeq = 0;
+let lastCell = null;
+
+function setLastCell(cell){
+  if (lastCell) lastCell.el.classList.remove('active');
+  lastCell = cell;
+  if (cell) cell.el.classList.add('active');
+}
+
+function setChip(cls, msg){ chip.className = 'chip ' + cls; chip.textContent = msg; }
+
+/* ================= sha256 ================= */
+function sha256js(ascii){
+  function rr(v,a){ return (v>>>a)|(v<<(32-a)); }
+  let maxWord = Math.pow(2,32), result = '';
+  const words = [], asciiBitLength = ascii.length*8;
+  let hash = sha256js.h = sha256js.h || [], k = sha256js.k = sha256js.k || [];
+  let primeCounter = k.length;
+  const isComposite = {};
+  for (let candidate = 2; primeCounter < 64; candidate++){
+    if (!isComposite[candidate]){
+      for (let i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+      hash[primeCounter] = (Math.pow(candidate, .5)*maxWord)|0;
+      k[primeCounter++] = (Math.pow(candidate, 1/3)*maxWord)|0;
+    }
+  }
+  ascii += '\x80';
+  while (ascii.length%64 - 56) ascii += '\x00';
+  for (let i = 0; i < ascii.length; i++){
+    const j = ascii.charCodeAt(i); if (j>>8) return '';
+    words[i>>2] |= j << ((3 - i)%4)*8;
+  }
+  words[words.length] = (asciiBitLength/maxWord)|0;
+  words[words.length] = asciiBitLength;
+  for (let j = 0; j < words.length;){
+    const w = words.slice(j, j += 16), oldHash = hash;
+    hash = hash.slice(0, 8);
+    for (let i = 0; i < 64; i++){
+      const w15 = w[i-15], w2 = w[i-2];
+      const a = hash[0], e = hash[4];
+      const temp1 = hash[7]
+        + (rr(e,6)^rr(e,11)^rr(e,25)) + ((e&hash[5])^((~e)&hash[6])) + k[i]
+        + (w[i] = (i<16) ? w[i] : (w[i-16] + (rr(w15,7)^rr(w15,18)^(w15>>>3)) + w[i-7] + (rr(w2,17)^rr(w2,19)^(w2>>>10)))|0);
+      const temp2 = (rr(a,2)^rr(a,13)^rr(a,22)) + ((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));
+      hash = [(temp1+temp2)|0].concat(hash);
+      hash[4] = (hash[4]+temp1)|0;
+    }
+    for (let i = 0; i < 8; i++) hash[i] = (hash[i]+oldHash[i])|0;
+  }
+  for (let i = 0; i < 8; i++)
+    for (let j = 3; j+1; j--){ const b = (hash[i]>>(j*8))&255; result += ((b<16)?'0':'')+b.toString(16); }
+  return result;
+}
+async function sha256(text){
+  try {
+    if (crypto && crypto.subtle){
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+  } catch(e){}
+  return sha256js(unescape(encodeURIComponent(text)));
+}
+
+let hashTimer = null;
+function refreshHash(){
+  clearTimeout(hashTimer);
+  hashTimer = setTimeout(async () => {
+    const payload = cells.map(c => c.pyBox.value + '\n--\n' + c.jsBox.value).join('\n==\n')
+                    + '\n==deps==\n' + depsBox.value;
+    const h = await sha256(payload);
+    hashEl.textContent = h;
+    hashEl.title = h;
+  }, 250);
+}
+depsBox.addEventListener('input', refreshHash);
+hashEl.title = 'click to copy the full sha-256';
+hashEl.style.cursor = 'pointer';
+hashEl.addEventListener('click', async () => {
+  const h = hashEl.textContent;
+  try { await navigator.clipboard.writeText(h); }
+  catch(e){
+    const r = document.createRange(); r.selectNodeContents(hashEl);
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    document.execCommand('copy'); s.removeAllRanges();
+  }
+  const prev = hashEl.textContent;
+  hashEl.textContent = 'copied ✓';
+  setTimeout(() => { hashEl.textContent = prev; }, 1000);
+});
+
+/* ================= uploads ================= */
+function renderUploads(){
+  $('uplist').innerHTML = '';
+  uploaded.forEach((text, name) => {
+    const c = document.createElement('span');
+    c.className = 'upchip';
+    c.appendChild(document.createTextNode(name + ' '));
+    const x = document.createElement('b'); x.textContent = '×';
+    x.onclick = () => { uploaded.delete(name); renderUploads(); };
+    c.appendChild(x);
+    $('uplist').appendChild(c);
+  });
+}
+function ingestFilesToCell(list, cell){
+  for (const f of list){
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result);
+      uploaded.set(f.name, text);
+      if (cell){
+        if (/\.py$/i.test(f.name)) cell.pyBox.value = text;
+        else if (/\.json$/i.test(f.name)) cell.jsBox.value = text;
+        const line = document.createElement('div');
+        line.className = 'cl meta';
+        line.textContent = 'loaded: ' + f.name + ' → ' + cell.nameEl.textContent
+          + ' (' + f.size + ' bytes)';
+        cell.con.appendChild(line);
+        refreshHash();
+      }
+      renderUploads();
+    };
+    reader.readAsText(f);
+  }
+}
+function ingestFiles(list){ ingestFilesToCell(list, lastCell); }
+$('fileBtn').addEventListener('click', () => $('fileInput').click());
+$('fileInput').addEventListener('change', e => { ingestFiles(e.target.files); e.target.value = ''; });
+['dragenter','dragover'].forEach(ev => ioBar.addEventListener(ev, e => { e.preventDefault(); ioBar.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev => ioBar.addEventListener(ev, e => { e.preventDefault(); ioBar.classList.remove('drag'); }));
+ioBar.addEventListener('drop', e => ingestFiles(e.dataTransfer.files));
+
+/* ================= pyodide ================= */
+async function ensurePyodide(){
+  if (pyodide) return pyodide;
+  setChip('wait', 'loading python engine…');
+  pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+  pyodide.setStdout({ batched: s => s.split('\n').forEach(l => l !== '' && clog(l, 'out')) });
+  pyodide.setStderr({ batched: s => s.split('\n').forEach(l => l !== '' && clog(l, 'err')) });
+  pyodide.runPython("import sys; sys.path.insert(0, '/home/pyodide') if '/home/pyodide' not in sys.path else None");
+  pyodide.globals.set('__file__', '/home/pyodide/sandbox_main.py');
+  const v = pyodide.runPython('import sys; ".".join(map(str, sys.version_info[:3]))');
+  setChip('ready', 'engine ready · python ' + v);
+  return pyodide;
+}
+
+async function installDeps(py){
+  const deps = depsBox.value.split(',').map(s => s.trim()).filter(Boolean);
+  if (!deps.length) return;
+  clog('installing deps: ' + deps.join(', ') + ' …', 'meta');
+  await py.loadPackage('micropip');
+  await py.runPythonAsync('import micropip; await micropip.install(' + JSON.stringify(deps) + ')');
+  clog('deps installed', 'meta');
+}
+
+function seedFilesystem(py){
+  for (const p of bridged){ try { py.FS.unlink(p); } catch(e){} }
+  bridged.clear();
+  for (const [name, text] of uploaded) py.FS.writeFile('/home/pyodide/' + name, text);
+}
+
+async function autoInstall(py, mod){
+  clog('module bridge: installing \'' + mod + '\'…', 'meta');
+  try { await py.loadPackage([mod]); return true; }
+  catch(e1){
+    try {
+      await py.loadPackage('micropip');
+      await py.runPythonAsync('import micropip; await micropip.install(' + JSON.stringify(mod) + ')');
+      return true;
+    } catch(e2){ return false; }
+  }
+}
+
+/* the console/log of the cell currently running */
+let activeCell = null;
+function clog(msg, cls){
+  if (!activeCell) return;
+  const line = document.createElement('div');
+  line.className = 'cl ' + cls; line.textContent = msg;
+  activeCell.con.appendChild(line);
+  activeCell.con.scrollTop = activeCell.con.scrollHeight;
+}
+
+async function runWithBridge(py, code, cell, runGlobals){
+  const healed = new Set();
+  for (let attempt = 0; attempt < 8; attempt++){
+    try { await py.runPythonAsync(code, { globals: runGlobals }); return; }
+    catch(e){
+      const msg = String((e && e.message) || e);
+      const m = /No such file or directory:\s*['"]([^'"]+)['"]/.exec(msg);
+      if (m && attempt < 7){
+        const p = m[1], base = p.split('/').pop();
+        const dir = p.slice(0, p.lastIndexOf('/'));
+        try { if (dir) py.FS.mkdirTree(dir); } catch(_){}
+        if (uploaded.has(base)){
+          py.FS.writeFile(p, uploaded.get(base)); bridged.add(p);
+          clog('fs bridge: ' + base + ' -> ' + p, 'meta');
+        } else if (p === '/home/pyodide/sandbox_main.py'){
+          py.FS.writeFile(p, cell.pyBox.value); bridged.add(p);
+        } else if (/\.py$/i.test(base)){
+          py.FS.writeFile(p, cell.pyBox.value); bridged.add(p);
+          clog('fs bridge: no upload named \'' + base + '\' — wrote this cell\'s python', 'warn');
+        } else {
+          py.FS.writeFile(p, cell.jsBox.value); bridged.add(p);
+          clog('fs bridge: no upload named \'' + base + '\' — wrote this cell\'s JSON', 'warn');
+        }
+        continue;
+      }
+      const mm = /No module named ['"]([^'"]+)['"]/.exec(msg);
+      if (mm && attempt < 7 && !healed.has(mm[1])){
+        healed.add(mm[1]);
+        if (await autoInstall(py, mm[1])) continue;
+        clog('module bridge: could not install \'' + mm[1] + '\'', 'warn');
+      }
+      throw e;
+    }
+  }
+}
+
+/* ================= bigint-safe json ================= */
+function parseJSONSafe(text){
+  let i = 0;
+  const isDigit = c => c >= '0' && c <= '9';
+  function ws(){ while (i < text.length && ' \t\n\r'.indexOf(text[i]) >= 0) i++; }
+  function string(){
+    i++; let s = '';
+    while (i < text.length && text[i] !== '"'){
+      if (text[i] === '\\'){
+        i++; const e = text[i];
+        if (e === 'n') s += '\n'; else if (e === 't') s += '\t'; else if (e === 'r') s += '\r';
+        else if (e === 'u'){ s += String.fromCharCode(parseInt(text.substr(i + 1, 4), 16)); i += 4; }
+        else s += e;
+        i++;
+      } else { s += text[i]; i++; }
+    }
+    i++; return s;
+  }
+  function number(){
+    const st = i;
+    if (text[i] === '-') i++;
+    while (i < text.length && isDigit(text[i])) i++;
+    let isInt = true;
+    if (text[i] === '.'){ isInt = false; i++; while (i < text.length && isDigit(text[i])) i++; }
+    if (text[i] === 'e' || text[i] === 'E'){
+      isInt = false; i++;
+      if (text[i] === '+' || text[i] === '-') i++;
+      while (i < text.length && isDigit(text[i])) i++;
+    }
+    const raw = text.slice(st, i);
+    if (isInt && raw.replace('-', '').length > 15) return raw;
+    return Number(raw);
+  }
+  function val(){
+    ws();
+    const c = text[i];
+    if (c === '{'){
+      i++; const o = {}; ws();
+      if (text[i] === '}'){ i++; return o; }
+      while (true){
+        ws(); const k = string(); ws(); i++; o[k] = val(); ws();
+        if (text[i] === ','){ i++; continue; }
+        if (text[i] === '}'){ i++; return o; }
+        throw new Error('json');
+      }
+    }
+    if (c === '['){
+      i++; const a = []; ws();
+      if (text[i] === ']'){ i++; return a; }
+      while (true){
+        a.push(val()); ws();
+        if (text[i] === ','){ i++; continue; }
+        if (text[i] === ']'){ i++; return a; }
+        throw new Error('json');
+      }
+    }
+    if (c === '"') return string();
+    if (c === 't'){ i += 4; return true; }
+    if (c === 'f'){ i += 5; return false; }
+    if (c === 'n'){ i += 4; return null; }
+    return number();
+  }
+  try { const v = val(); return { ok: true, value: v }; }
+  catch(e){ return { ok: false }; }
+}
+
+function findRecords(obj){
+  /* recursive: records can hide several levels deep (e.g. families.q2_infinite.emirps) */
+  let best = null;
+  (function visit(node){
+    if (Array.isArray(node)){
+      if (node.length && typeof node[0] === 'object' && node[0] !== null && !Array.isArray(node[0])){
+        if (!best || node.length > best.length) best = node;
+        return; /* a bigger table is not nested inside its own records */
+      }
+      node.forEach(visit);
+    } else if (node && typeof node === 'object'){
+      Object.values(node).forEach(visit);
+    }
+  })(obj);
+  return best;
+}
+
+function isNumLike(v){ return typeof v === 'number' || (typeof v === 'string' && /^-?\d+$/.test(v)); }
+
+function numCompare(a, b){
+  a = String(a); b = String(b);
+  const na = a[0] === '-', nb = b[0] === '-';
+  if (na !== nb) return na ? -1 : 1;
+  const da = na ? a.slice(1) : a, db = nb ? b.slice(1) : b;
+  let c;
+  if (da.length !== db.length) c = da.length < db.length ? -1 : 1;
+  else c = da < db ? -1 : (da > db ? 1 : 0);
+  return na ? -c : c;
+}
+
+function numVal(v){ return typeof v === 'number' ? v : Number(v); }
+
+function cellText(v){
+  if (v === null || v === undefined) return '';
+  const t = typeof v;
+  if (t === 'number' || t === 'boolean' || t === 'string') return String(v);
+  const s = JSON.stringify(v);
+  return s.length > 80 ? s.slice(0, 77) + '…' : s;
+}
+
+/* ---- histograms ---- */
+function fmtH(v){
+  const a = Math.abs(v);
+  if (a >= 1e9) return (v/1e9).toPrecision(3) + 'G';
+  if (a >= 1e6) return (v/1e6).toPrecision(3) + 'M';
+  if (a >= 1e4) return (v/1e3).toPrecision(3) + 'k';
+  if (a >= 1000) return String(Math.round(v));
+  return String(Number(v.toPrecision(4)));
+}
+
+function histoSVG(valuesList, labels, colors){
+  const all = valuesList.flat();
+  if (!all.length) return null;
+  let lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
+  if (lo === hi){ lo -= 0.5; hi += 0.5; }
+  const BINS = 24;
+  const series = valuesList.map(vals => {
+    const bins = new Array(BINS).fill(0);
+    vals.forEach(v => {
+      let b = Math.floor((v - lo) / (hi - lo) * BINS);
+      if (b >= BINS) b = BINS - 1;
+      if (b < 0) b = 0;
+      bins[b]++;
+    });
+    return bins;
+  });
+  const maxC = Math.max.apply(null, series.flat().concat([1]));
+  const W = 560, H = 150, padL = 36, padR = 10, padT = 18, padB = 24;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+  function el(tag, attrs){
+    const e = document.createElementNS(svgNS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  [0.25, 0.5, 0.75, 1].forEach(fr => {
+    const y = padT + plotH * (1 - fr);
+    svg.appendChild(el('line', { x1: padL, y1: y, x2: W - padR, y2: y, stroke: '#232a35', 'stroke-width': 1 }));
+    const lab = el('text', { x: padL - 5, y: y + 3, 'text-anchor': 'end', 'font-size': 8.5,
+      fill: '#5b6672', 'font-family': 'ui-monospace, Consolas, monospace' });
+    lab.textContent = String(Math.round(maxC * fr));
+    svg.appendChild(lab);
+  });
+  svg.appendChild(el('line', { x1: padL, y1: padT + plotH, x2: W - padR, y2: padT + plotH,
+    stroke: '#2c3542', 'stroke-width': 1 }));
+  for (let j = 0; j <= 4; j++){
+    const x = padL + plotW * j / 4;
+    const v = lo + (hi - lo) * j / 4;
+    svg.appendChild(el('line', { x1: x, y1: padT + plotH, x2: x, y2: padT + plotH + 3,
+      stroke: '#2c3542', 'stroke-width': 1 }));
+    const lab = el('text', { x: x, y: H - 8, 'text-anchor': 'middle', 'font-size': 8.5,
+      fill: '#5b6672', 'font-family': 'ui-monospace, Consolas, monospace' });
+    lab.textContent = fmtH(v);
+    svg.appendChild(lab);
+  }
+  const bw = plotW / BINS, nS = series.length;
+  series.forEach((bins, si) => {
+    const barW = bw * (nS > 1 ? 0.36 : 0.72);
+    bins.forEach((c, bi) => {
+      if (!c) return;
+      const h = plotH * c / maxC;
+      const x = padL + bi * bw + (nS > 1 ? (si * 0.5 + 0.07) * bw : (bw - barW) / 2);
+      const fill = (colors && colors[si]) || (si > 0 ? '#e0b34f' : '#4c8dff');
+      const r = el('rect', { x: x, y: padT + plotH - h, width: barW, height: h, rx: 2, fill: fill });
+      const blo = lo + (hi - lo) * bi / BINS, bhi = lo + (hi - lo) * (bi + 1) / BINS;
+      const title = el('title', {});
+      title.textContent = '[' + Number(blo.toPrecision(6)) + ', ' + Number(bhi.toPrecision(6))
+        + ') → ' + c + (labels && labels[si] ? ' · ' + labels[si] : '');
+      r.appendChild(title);
+      svg.appendChild(r);
+      if (c >= Math.max(2, maxC * 0.12)){
+        const cl = el('text', { x: x + barW / 2, y: padT + plotH - h - 3, 'text-anchor': 'middle',
+          'font-size': 8.5, fill: '#9aa7b8', 'font-family': 'ui-monospace, Consolas, monospace' });
+        cl.textContent = String(c);
+        svg.appendChild(cl);
+      }
+    });
+  });
+  return svg;
+}
+
+function exportSvgPng(svg, name){
+  try {
+    const xml = new XMLSerializer().serializeToString(svg);
+    const img = new Image();
+    img.onload = () => {
+      const scale = 2, W = 560 * scale, H = 150 * scale;
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#0b0e13';
+      ctx.fillRect(0, 0, W, H);
+      ctx.drawImage(img, 0, 0, W, H);
+      canvas.toBlob(blob => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = (name || 'probat_chart') + '.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      }, 'image/png');
+    };
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(xml)));
+  } catch(e){}
+}
+
+/* ================= cell : one python+json+run unit ================= */
+function makeCell(state){
+  cellSeq++;
+  const cell = { id: 'c' + cellSeq, runs: 0, lastMs: null, recs: null, keys: null, numericKeys: [] };
+
+  const el = document.createElement('div');
+  el.className = 'cell';
+
+  const head = document.createElement('div');
+  head.className = 'cell-head';
+  const name = document.createElement('span');
+  name.className = 'cell-name';
+  name.contentEditable = 'true';
+  name.spellcheck = false;
+  name.textContent = state.name || ('run ' + cellSeq);
+  const stats = document.createElement('span');
+  stats.className = 'cell-stats';
+  const upBtn = document.createElement('button');
+  upBtn.className = 'cell-up';
+  upBtn.textContent = '⬆';
+  upBtn.title = 'upload .py / .json into this run';
+  const upInput = document.createElement('input');
+  upInput.type = 'file';
+  upInput.multiple = true;
+  upInput.accept = '.py,.json,.txt';
+  upInput.style.display = 'none';
+  const runBtn = document.createElement('button');
+  runBtn.className = 'primary';
+  runBtn.textContent = '▶ run';
+  const delBtn = document.createElement('button');
+  delBtn.className = 'cell-del';
+  delBtn.textContent = '✕';
+  delBtn.title = 'remove this run';
+  head.appendChild(name); head.appendChild(stats); head.appendChild(upBtn); head.appendChild(upInput); head.appendChild(runBtn); head.appendChild(delBtn);
+  el.appendChild(head);
+
+  const editors = document.createElement('div');
+  editors.className = 'editors';
+  const panePy = document.createElement('div');
+  panePy.className = 'pane';
+  panePy.innerHTML = '<div class="pane-title"><span class="dot py"></span>python</div>';
+  const pyBox = document.createElement('textarea');
+  pyBox.spellcheck = false;
+  pyBox.placeholder = 'paste or drop a .py — runs in your browser, exact bigint arithmetic';
+  pyBox.value = state.py || '';
+  panePy.appendChild(pyBox);
+  const paneJs = document.createElement('div');
+  paneJs.className = 'pane';
+  paneJs.innerHTML = '<div class="pane-title"><span class="dot js"></span>json</div>';
+  const jsBox = document.createElement('textarea');
+  jsBox.spellcheck = false;
+  jsBox.placeholder = 'paste or drop a .json — available to the script as the DATA string';
+  jsBox.value = state.json || '';
+  paneJs.appendChild(jsBox);
+  editors.appendChild(panePy); editors.appendChild(paneJs);
+  el.appendChild(editors);
+
+  const conPane = document.createElement('div');
+  conPane.className = 'console-pane';
+  conPane.innerHTML = '<div class="pane-title"><span class="dot out"></span>output</div>';
+  const con = document.createElement('pre');
+  con.className = 'console';
+  conPane.appendChild(con);
+  const statsLine = document.createElement('div');
+  statsLine.className = 'runstats';
+  conPane.appendChild(statsLine);
+  const exports = document.createElement('div');
+  exports.className = 'exports';
+  conPane.appendChild(exports);
+  el.appendChild(conPane);
+
+  const datapane = document.createElement('div');
+  datapane.className = 'datapane';
+  const dpHead = document.createElement('div');
+  dpHead.className = 'datapane-head';
+  dpHead.innerHTML = '<span class="t">verified data</span><span class="s stats"></span>' +
+                     '<span class="chip ok">✓ compiled after successful run</span>';
+  const dpBody = document.createElement('div');
+  dpBody.style.cssText = 'max-height:380px;overflow:auto';
+  const profbar = document.createElement('div');
+  profbar.className = 'profbar';
+  profbar.style.display = 'none';
+  const profhisto = document.createElement('div');
+  profhisto.className = 'profhisto';
+  profhisto.style.display = 'none';
+  datapane.appendChild(dpHead);
+  datapane.appendChild(profbar);
+  datapane.appendChild(profhisto);
+  datapane.appendChild(dpBody);
+  el.appendChild(datapane);
+
+  Object.assign(cell, { el, nameEl: name, statsEl: stats, runBtn, delBtn,
+                        pyBox, jsBox, con, statsLine, exportsEl: exports,
+                        datapane, dpBody, dpStats: dpHead.querySelector('.s.stats'),
+                        profbar, profhisto });
+
+  pyBox.addEventListener('input', refreshHash);
+  jsBox.addEventListener('input', refreshHash);
+  name.addEventListener('input', refreshCompareSelectors);
+
+  runBtn.addEventListener('click', () => runCell(cell));
+  delBtn.addEventListener('click', () => {
+    if (cells.length <= 1) return;
+    cells.splice(cells.indexOf(cell), 1);
+    el.remove();
+    refreshHash(); refreshCompareSelectors(); refreshCompare();
+  });
+  upBtn.addEventListener('click', () => upInput.click());
+  upInput.addEventListener('change', e => { ingestFilesToCell(e.target.files, cell); e.target.value = ''; });
+  ['dragenter','dragover'].forEach(ev => el.addEventListener(ev, e => {
+    e.preventDefault(); e.stopPropagation(); el.classList.add('drag');
+  }));
+  ['dragleave','drop'].forEach(ev => el.addEventListener(ev, e => {
+    e.preventDefault(); e.stopPropagation(); el.classList.remove('drag');
+  }));
+  el.addEventListener('drop', e => ingestFilesToCell(e.dataTransfer.files, cell));
+
+  return cell;
+}
+
+function addCell(state){
+  const cell = makeCell(state || {});
+  $('cells').appendChild(cell.el);
+  cells.push(cell);
+  cell.el.addEventListener('focusin', () => setLastCell(cell));
+  cell.el.addEventListener('click', () => setLastCell(cell));
+  setLastCell(cell);
+  refreshHash(); refreshCompareSelectors();
+  return cell;
+}
+$('addCellBtn').addEventListener('click', () => addCell({}));
+
+const PY_FSMTIME = "import os\n{d: int(os.stat('/home/pyodide/'+d).st_mtime*1000) for d in os.listdir('/home/pyodide') if os.path.isfile('/home/pyodide/'+d) and not d.startswith('.')}";
+
+/* ================= per-cell run ================= */
+let runQueue = [];
+let runActive = false;
+const fileOwner = new Map();
+
+async function runCell(cell){
+  setLastCell(cell);
+  if (runActive || runQueue.length){
+    runQueue.push(cell);
+    cell.statsLine.textContent = 'queued · position ' + runQueue.length;
+    setChip('wait', '⏳ ' + cell.nameEl.textContent + ' queued');
+    return;
+  }
+  runActive = true;
+  try { await executeRun(cell); }
+  finally {
+    runActive = false;
+    const next = runQueue.shift();
+    if (next) runCell(next);
+  }
+}
+
+async function executeRun(cell){
+  cell.con.innerHTML = '';
+  cell.datapane.classList.remove('on');
+  cell.profbar.style.display = 'none';
+  cell.profhisto.style.display = 'none';
+  const t0 = performance.now();
+  activeCell = cell;
+  let runGlobals = null;
+  try {
+    const py = await ensurePyodide();
+    setChip('wait', 'verifying ' + cell.nameEl.textContent + '…');
+    await installDeps(py);
+    seedFilesystem(py);
+    /* clean room: a fresh globals dict per run — no state leaks between runs */
+    runGlobals = py.globals.get('dict')();
+    runGlobals.set('__file__', '/home/pyodide/sandbox_main.py');
+    runGlobals.set('DATA', cell.jsBox.value);
+    cell._fsM = new Map();
+    try { cell._fsM = py.runPython(PY_FSMTIME).toJs(); } catch(e){}
+    await runWithBridge(py, cell.pyBox.value, cell, runGlobals);
+    const dt = (performance.now() - t0);
+    cell.runs++;
+    cell.lastMs = dt;
+    cell.statsLine.textContent = 'ran in ' + (dt/1000).toFixed(2) + ' s · run #' + cell.runs;
+    cell.statsEl.textContent = (dt/1000).toFixed(2) + ' s';
+    let written = [];
+    try {
+      const after = py.runPython(PY_FSMTIME).toJs();
+      after.forEach((mt, n) => {
+        if (uploaded.has(n)) return;
+        if (!cell._fsM.has(n) || cell._fsM.get(n) !== mt) written.push(n);
+      });
+    } catch(e){}
+    written.forEach(n => {
+      const prev = fileOwner.get(n);
+      if (prev && prev !== cell.nameEl.textContent){
+        clog('collision: \'' + n + '\' overwrites a file written by "' + prev
+          + '" — that run\'s exports now serve this content', 'warn');
+      }
+      fileOwner.set(n, cell.nameEl.textContent);
+    });
+    refreshExports(py, cell, written);
+    const newJsons = written.filter(n => /\.json$/i.test(n));
+    if (!cell.jsBox.value.trim() && newJsons.length){
+      let pick = newJsons[0], pickSize = -1;
+      newJsons.forEach(n => {
+        try {
+          const sz = py.FS.stat('/home/pyodide/' + n).size;
+          if (sz > pickSize){ pickSize = sz; pick = n; }
+        } catch(e){}
+      });
+      try {
+        const content = py.FS.readFile('/home/pyodide/' + pick, { encoding: 'utf8' });
+        cell.jsBox.value = content;
+        const line = document.createElement('div');
+        line.className = 'cl meta';
+        line.textContent = 'auto-backfill: ' + pick + ' → json box'
+          + (newJsons.length > 1
+             ? ' (largest of ' + newJsons.length + ' json written — the others stay in the export panel)'
+             : '');
+        cell.con.appendChild(line);
+        refreshHash();
+      } catch(e){}
+    }
+    renderDataTable(cell);
+    setChip('ok', '✓ ' + cell.nameEl.textContent + ' self-verified');
+    refreshCompare();
+  } catch(e){
+    clog(String((e && e.message) || e), 'err');
+    setChip('ko', '✗ ' + cell.nameEl.textContent + ' failed');
+    refreshCompare();
+  } finally {
+    activeCell = null;
+    if (runGlobals){ try { runGlobals.destroy(); } catch(e){} }
+  }
+}
+
+function refreshExports(py, cell, written){
+  const listEl = cell.exportsEl;
+  listEl.innerHTML = '';
+  const fresh = (written || []).filter(n => !uploaded.has(n));
+  if (!fresh.length) return;
+  const label = document.createElement('span');
+  label.className = 'explabel';
+  label.textContent = 'files written:';
+  listEl.appendChild(label);
+  fresh.forEach(n => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'expbtn';
+    b.textContent = '⬇ ' + n;
+    b.onclick = () => {
+      const content = py.FS.readFile('/home/pyodide/' + n, { encoding: 'utf8' });
+      const blob = new Blob([content], { type: 'application/octet-stream' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = n;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    };
+    listEl.appendChild(b);
+  });
+}
+
+/* ================= per-cell compiled table + column profiles ================= */
+function renderDataTable(cell){
+  const pane = cell.datapane, body = cell.dpBody;
+  pane.classList.remove('on'); body.innerHTML = '';
+  cell.profbar.innerHTML = ''; cell.profbar.style.display = 'none';
+  cell.profhisto.innerHTML = ''; cell.profhisto.style.display = 'none';
+  const parsed = parseJSONSafe(cell.jsBox.value);
+  if (!parsed.ok){ clog('json box does not parse — table not compiled', 'warn'); return; }
+  const recs = findRecords(parsed.value);
+  if (!recs){ clog('json parses but contains no array of records — table not compiled', 'warn'); return; }
+
+  const MAX_ROWS = 400;
+  const keys = [];
+  for (const r of recs){
+    if (r && typeof r === 'object')
+      for (const k of Object.keys(r)) if (!keys.includes(k) && keys.length < 12) keys.push(k);
+  }
+
+  const sortState = { key: null, dir: 0 };
+  function cmp(a, b){
+    const va = a ? a[sortState.key] : undefined, vb = b ? b[sortState.key] : undefined;
+    const ea = va === undefined || va === null, eb = vb === undefined || vb === null;
+    if (ea && eb) return 0;
+    if (ea) return 1;
+    if (eb) return -1;
+    if (isNumLike(va) && isNumLike(vb)) return numCompare(va, vb);
+    return String(va).localeCompare(String(vb));
+  }
+  function ordered(){
+    if (!sortState.key || !sortState.dir) return recs;
+    const arr = recs.slice().sort(cmp);
+    if (sortState.dir < 0) arr.reverse();
+    return arr;
+  }
+
+  const tbl = document.createElement('table');
+  const thead = document.createElement('thead');
+  const htr = document.createElement('tr');
+  const indicators = {};
+  keys.forEach(k => {
+    const th = document.createElement('th');
+    if (recs.every(r => r[k] === null || r[k] === undefined || isNumLike(r[k]))) th.className = 'num';
+    th.classList.add('sortable');
+    const lab = document.createElement('span'); lab.textContent = k;
+    const ind = document.createElement('span'); ind.className = 'ind';
+    th.appendChild(lab); th.appendChild(ind);
+    indicators[k] = ind;
+    th.title = 'click to sort — first click ascending (natural order)';
+    th.addEventListener('click', () => {
+      if (sortState.key !== k){ sortState.key = k; sortState.dir = 1; }
+      else sortState.dir = sortState.dir === 1 ? -1 : (sortState.dir === -1 ? 0 : 1);
+      for (const kk of keys)
+        indicators[kk].textContent = (kk === sortState.key && sortState.dir !== 0)
+          ? (sortState.dir === 1 ? '▲' : '▼') : '';
+      drawRows();
+    });
+    htr.appendChild(th);
+  });
+  thead.appendChild(htr); tbl.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  tbl.appendChild(tbody);
+  function drawRows(){
+    tbody.innerHTML = '';
+    ordered().slice(0, MAX_ROWS).forEach(r => {
+      const tr = document.createElement('tr');
+      keys.forEach(k => {
+        const td = document.createElement('td');
+        const v = r ? r[k] : undefined;
+        td.textContent = cellText(v);
+        td.title = (v !== null && typeof v === 'object') ? JSON.stringify(v) : String(v);
+        if (isNumLike(v)) td.className = 'num';
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+  }
+  drawRows();
+  body.appendChild(tbl);
+
+  if (recs.length > MAX_ROWS){
+    const more = document.createElement('div');
+    more.className = 'more';
+    more.textContent = '… ' + (recs.length - MAX_ROWS) + ' more rows not shown (full data remains in the JSON box)';
+    body.appendChild(more);
+  }
+  cell.dpStats.textContent = recs.length + ' rows × ' + keys.length + ' cols';
+  pane.classList.add('on');
+
+  cell.recs = recs; cell.keys = keys;
+  cell.numericKeys = keys.filter(k => recs.some(r => isNumLike(r && r[k])) &&
+                                     recs.every(r => r[k] === null || r[k] === undefined || isNumLike(r[k])));
+
+  /* column profiles : one-click native histograms */
+  if (cell.numericKeys.length){
+    cell.profbar.style.display = 'flex';
+    const lab = document.createElement('span');
+    lab.className = 'plabel';
+    lab.textContent = 'profile:';
+    cell.profbar.appendChild(lab);
+    cell.numericKeys.forEach(k => {
+      const chipB = document.createElement('button');
+      chipB.type = 'button';
+      chipB.className = 'profchip';
+      chipB.textContent = '▤ ' + k;
+      chipB.onclick = () => {
+        const sel = cell.profbar.querySelectorAll('.profchip');
+        sel.forEach(c => c.classList.remove('sel'));
+        const show = cell.profhisto.style.display !== 'block' || cell.profhisto.dataset.key !== k;
+        cell.profhisto.innerHTML = '';
+        if (!show){ cell.profhisto.style.display = 'none'; cell.profhisto.dataset.key = ''; return; }
+        chipB.classList.add('sel');
+        const vals = recs.map(r => r && r[k]).filter(isNumLike).map(numVal);
+        const svg = histoSVG([vals], null, null);
+        if (!svg) return;
+        const headRow = document.createElement('div');
+        headRow.className = 'h-head';
+        const t = document.createElement('span');
+        t.className = 'h-title';
+        t.textContent = k + ' — ' + vals.length + ' values';
+        const pngBtn = document.createElement('button');
+        pngBtn.type = 'button';
+        pngBtn.className = 'pngbtn';
+        pngBtn.textContent = '⬇ png';
+        pngBtn.onclick = () => exportSvgPng(svg, 'probat_' + k);
+        headRow.appendChild(t); headRow.appendChild(pngBtn);
+        cell.profhisto.appendChild(headRow);
+        cell.profhisto.appendChild(svg);
+        cell.profhisto.style.display = 'block';
+        cell.profhisto.dataset.key = k;
+      };
+      cell.profbar.appendChild(chipB);
+    });
+  }
+}
+
+/* ================= compare runs ================= */
+function refreshCompareSelectors(){
+  const a = $('cmpA'), b = $('cmpB');
+  const keepA = a.value, keepB = b.value;
+  a.innerHTML = ''; b.innerHTML = '';
+  cells.forEach(c => {
+    const o1 = document.createElement('option');
+    o1.value = c.id; o1.textContent = c.nameEl.textContent;
+    a.appendChild(o1);
+    const o2 = o1.cloneNode(true);
+    b.appendChild(o2);
+  });
+  if (keepA && [...a.options].some(o => o.value === keepA)) a.value = keepA;
+  if (keepB && [...b.options].some(o => o.value === keepB)) b.value = keepB;
+  else if (b.options.length > 1) b.value = b.options[1].value;
+}
+
+function canon(v){
+  if (v === null || typeof v !== 'object') return JSON.stringify(v);
+  if (Array.isArray(v)) return '[' + v.map(canon).join(',') + ']';
+  return '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}';
+}
+
+function diffRecs(A, B){
+  const keysA = A.length ? Object.keys(A[0]) : [];
+  const keysB = B.length ? Object.keys(B[0]) : [];
+  const common = keysA.filter(k => keysB.includes(k));
+  let key = null;
+  for (const k of common){
+    const va = A.map(r => canon(r[k])), vb = B.map(r => canon(r[k]));
+    if (new Set(va).size === A.length && new Set(vb).size === B.length){ key = k; break; }
+  }
+  const added = [], removed = [], changed = [];
+  if (key){
+    const mapA = new Map(A.map(r => [canon(r[key]), r]));
+    const mapB = new Map(B.map(r => [canon(r[key]), r]));
+    B.forEach(r => {
+      const k = canon(r[key]);
+      if (!mapA.has(k)) added.push(r);
+      else if (canon(mapA.get(k)) !== canon(r)) changed.push({ key: r[key], a: mapA.get(k), b: r });
+    });
+    A.forEach(r => { if (!mapB.has(canon(r[key]))) removed.push(r); });
+    return { mode: 'key', key, added, removed, changed };
+  }
+  const count = new Map();
+  A.forEach(r => { const c = canon(r); count.set(c, (count.get(c) || 0) + 1); });
+  B.forEach(r => {
+    const c = canon(r);
+    if (count.has(c)) count.set(c, count.get(c) - 1);
+    else added.push(r);
+  });
+  count.forEach((n, c) => { for (let i = 0; i < n; i++) removed.push(JSON.parse(c)); });
+  return { mode: 'multiset', key: null, added, removed, changed };
+}
+
+function refreshCompare(){
+  const pane = $('comparepane');
+  const done = cells.filter(c => c.recs);
+  if (done.length < 2){ pane.classList.remove('on'); return; }
+  pane.classList.add('on');
+
+  /* --- runtime table : speed is a variable --- */
+  const rt = $('cpRuntime');
+  rt.innerHTML = '';
+  const best = Math.min.apply(null, done.map(c => c.lastMs));
+  let html = '<table class="rt-table"><thead><tr><th>run</th><th>runs</th><th class="num">last time</th><th class="num">vs best</th></tr></thead><tbody>';
+  done.forEach(c => {
+    const d = c.lastMs - best;
+    html += '<tr><td>' + c.nameEl.textContent + '</td><td class="num">' + c.runs + '</td><td class="num">'
+      + (c.lastMs/1000).toFixed(3) + ' s</td><td class="num">'
+      + (c.lastMs === best ? '<span class="rt-best">best</span>' : '+' + (d/1000).toFixed(3) + ' s')
+      + '</td></tr>';
+  });
+  rt.innerHTML = html + '</tbody></table>';
+
+  /* --- data diff between selected pair --- */
+  const ca = cells.find(c => c.id === $('cmpA').value) || done[0];
+  const cb = cells.find(c => c.id === $('cmpB').value) || done[1];
+  if (!ca || !cb || ca === cb){ $('cpDiff').innerHTML = '<div class="legend">pick two different runs to diff their data</div>'; $('cpHistos').innerHTML = ''; return; }
+  const d = diffRecs(ca.recs, cb.recs);
+
+  let head = '<span class="dchip d-added">+' + d.added.length + ' added</span>' +
+             '<span class="dchip d-removed">−' + d.removed.length + ' removed</span>' +
+             '<span class="dchip d-changed">~' + d.changed.length + ' changed</span>' +
+             '<span class="legend">' + (d.mode === 'key'
+                ? 'joined on key "' + d.key + '"'
+                : 'no unique key column — multiset comparison') + '</span>';
+  let rows = '';
+  const preview = (status, cells_, limit) => cells_.slice(0, limit).map(r => {
+    if (status === '~'){
+      const fields = Object.keys(r.b).filter(k => canon(r.a[k]) !== canon(r.b[k]))
+        .map(k => k + ': ' + cellText(r.a[k]) + ' → ' + cellText(r.b[k])).join(' | ');
+      return '<tr><td><span class="dchip d-changed">~</span></td><td>' + cellText(r.key) + '</td><td>' + fields + '</td></tr>';
+    }
+    return '<tr><td><span class="dchip ' + (status === '+' ? 'd-added' : 'd-removed') + '">' + status + '</span></td><td>'
+      + cellText(r[Object.keys(r)[0]]) + '</td><td>' + cellText(r).slice(0, 120) + '</td></tr>';
+  }).join('');
+  rows += preview('+', d.added, 30) + preview('−', d.removed, 30) + preview('~', d.changed, 30);
+  const total = d.added.length + d.removed.length + d.changed.length;
+  const more = total > 90 ? '<div class="legend">… ' + (total - 90) + ' more diff rows (full data in both JSON boxes)</div>' : '';
+  $('cpDiff').innerHTML = head + (rows
+    ? '<table class="difftable"><thead><tr><th></th><th>' + (d.mode === 'key' ? d.key : 'row') + '</th><th>details</th></tr></thead><tbody>' + rows + '</tbody></table>' + more
+    : '<div class="legend">identical record sets</div>');
+
+  /* --- crossed histograms on common numeric columns --- */
+  const commonNum = ca.numericKeys.filter(k => cb.numericKeys.includes(k));
+  const ch = $('cpHistos');
+  ch.innerHTML = '<div class="legend"><span class="swatch" style="background:#4c8dff"></span>' + ca.nameEl.textContent +
+                 '<span class="swatch" style="background:#e0b34f"></span>' + cb.nameEl.textContent + '</div>';
+  commonNum.slice(0, 6).forEach(k => {
+    const va = ca.recs.map(r => r && r[k]).filter(isNumLike).map(numVal);
+    const vb = cb.recs.map(r => r && r[k]).filter(isNumLike).map(numVal);
+    const svg = histoSVG([va, vb], null, null);
+    if (!svg) return;
+    const box = document.createElement('div');
+    box.className = 'cmp-histo';
+    const headRow = document.createElement('div');
+    headRow.className = 'h-head';
+    const t = document.createElement('span');
+    t.className = 'h-title';
+    t.textContent = k;
+    const pngBtn = document.createElement('button');
+    pngBtn.type = 'button';
+    pngBtn.className = 'pngbtn';
+    pngBtn.textContent = '⬇ png';
+    pngBtn.onclick = () => exportSvgPng(svg, 'probat_compare_' + k);
+    headRow.appendChild(t); headRow.appendChild(pngBtn);
+    box.appendChild(headRow); box.appendChild(svg);
+    ch.appendChild(box);
+  });
+  if (!commonNum.length) ch.innerHTML += '<div class="legend">no common numeric column to chart</div>';
+}
+$('cmpA').addEventListener('change', refreshCompare);
+$('cmpB').addEventListener('change', refreshCompare);
+
+/* ================= sketch ================= */
+const SK_COLORS = ['#4c8dff', '#ff7b72', '#4ec27f', '#e0b34f', '#e6e9ef'];
+let skColor = SK_COLORS[0], skStroke = null, skEditing = false;
+
+function skSize(){
+  const page = document.querySelector('.page');
+  $('sketchSvg').setAttribute('width', page.scrollWidth);
+  $('sketchSvg').setAttribute('height', page.scrollHeight);
+}
+function skSetEditing(on){
+  skEditing = on;
+  $('sketchLayer').classList.toggle('editing', on);
+  $('sketchbar').classList.toggle('on', on);
+  $('sketchBtn').classList.toggle('active', on);
+  if (on) skSize();
+}
+$('sketchBtn').addEventListener('click', () => skSetEditing(!skEditing));
+SK_COLORS.forEach((c, i) => {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'skdot' + (i === 0 ? ' sel' : '');
+  b.style.background = c;
+  b.onclick = () => {
+    skColor = c;
+    document.querySelectorAll('.skdot').forEach(d => d.classList.remove('sel'));
+    b.classList.add('sel');
+  };
+  $('skColors').appendChild(b);
+});
+const skLayer = $('sketchLayer');
+skLayer.addEventListener('pointerdown', e => {
+  if (!skEditing) return;
+  e.preventDefault();
+  const rect = document.querySelector('.page').getBoundingClientRect();
+  const pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+  pl.setAttribute('stroke', skColor);
+  pl.setAttribute('points', (e.clientX - rect.left) + ',' + (e.clientY - rect.top));
+  $('sketchSvg').appendChild(pl);
+  skStroke = pl;
+  skLayer.setPointerCapture(e.pointerId);
+});
+skLayer.addEventListener('pointermove', e => {
+  if (!skStroke) return;
+  const rect = document.querySelector('.page').getBoundingClientRect();
+  skStroke.setAttribute('points', skStroke.getAttribute('points') + ' '
+    + (e.clientX - rect.left) + ',' + (e.clientY - rect.top));
+});
+['pointerup', 'pointercancel'].forEach(ev => skLayer.addEventListener(ev, () => { skStroke = null; }));
+$('skUndo').addEventListener('click', () => {
+  const svg = $('sketchSvg');
+  if (svg.lastChild) svg.removeChild(svg.lastChild);
+});
+$('skClear').addEventListener('click', () => { $('sketchSvg').innerHTML = ''; });
+$('skDone').addEventListener('click', () => skSetEditing(false));
+window.addEventListener('resize', () => { if (skEditing) skSize(); });
+skSize();
+
+/* ================= freeze ================= */
+$('freezeBtn').addEventListener('click', () => {
+  skSetEditing(false);
+  skSize();
+  const data = JSON.stringify({
+    cells: cells.map(c => ({ name: c.nameEl.textContent, py: c.pyBox.value, json: c.jsBox.value })),
+    deps: depsBox.value
+  }).replace(/</g, '\\u003c');
+  $('init-data').textContent = data;
+  const cellsHolder = $('cells'), savedCells = cellsHolder.innerHTML;
+  cellsHolder.innerHTML = ''; /* init-data carries everything — no duplicated cells on open */
+  const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  cellsHolder.innerHTML = savedCells;
+  const blob = new Blob([html], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'lapis_' + new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '') + '.html';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  if (activeCell) clog('— lapis downloaded: ' + a.download + ' —', 'meta');
+});
+
+/* ================= init ================= */
+const init = JSON.parse($('init-data').textContent);
+depsBox.value = init.deps || '';
+$('uplist').innerHTML = '';
+(init.cells && init.cells.length ? init.cells : [{ name: 'run 1', py: '', json: '' }])
+  .forEach(s => addCell(s));
+/* a lapis re-compiles its verified tables on open — pure JS, no engine needed */
+cells.forEach(c => { if (c.jsBox.value.trim()) renderDataTable(c); });
+refreshCompare();
+refreshHash();
+window.addEventListener('load', () => setChip('ready', 'engine idle · press ▶ on any run'));
+</script>
+</body>
+</html>
